@@ -20,8 +20,8 @@ public class RespawnBall : MonoBehaviour {
 			{
 				var respawnPoint = ball.name.ToLower().Contains("red") ? redRespawnPoint : blueRespawnPoint;
 				ball.transform.position = respawnPoint.position;
-				ball.rigidbody.velocity = Vector3.zero;
-				ball.rigidbody.angularVelocity = Vector3.zero;
+				ball.GetComponent<Rigidbody>().velocity = Vector3.zero;
+				ball.GetComponent<Rigidbody>().angularVelocity = Vector3.zero;
 			}
 		}
 	}

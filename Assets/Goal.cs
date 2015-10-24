@@ -32,7 +32,7 @@ public class Goal : MonoBehaviour {
 		messageShowing = false;
 		
 		c.transform.position = respawnPoint.position;
-		c.rigidbody.velocity = Vector3.zero;
-		c.rigidbody.angularVelocity = Vector3.zero;
+		c.GetComponent<Rigidbody>().velocity = Vector3.zero;
+		c.GetComponent<Rigidbody>().angularVelocity = Vector3.zero;
 	}
 }

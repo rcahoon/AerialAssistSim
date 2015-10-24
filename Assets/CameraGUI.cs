@@ -23,15 +23,16 @@ public class CameraGUI : MonoBehaviour
 	
 	void OnGUI()
 	{
-		GUILayout.BeginHorizontal();
+		GUILayout.BeginHorizontal(GUILayout.Width(Screen.width));
 			GUILayout.Space(20);
 			GUILayout.BeginVertical();
 				CameraSelection(camerasLeft, ref leftCamera);
 			GUILayout.EndVertical();
-			GUILayout.Space(700);
+			GUILayout.FlexibleSpace();
 			GUILayout.BeginVertical();
 				CameraSelection(camerasRight, ref rightCamera);
 			GUILayout.EndVertical();
+      GUILayout.Space(20);
 		GUILayout.EndHorizontal();
 		
 		if (rightCamera)

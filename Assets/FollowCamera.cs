@@ -33,7 +33,7 @@ public class FollowCamera : MonoBehaviour
     {
 		if (!Input.GetMouseButton(0))
 			hasMouse = false;
-		if (camera.pixelRect.Contains(Input.mousePosition))
+		if (GetComponent<Camera>().pixelRect.Contains(Input.mousePosition))
 		{
 			if (Input.GetMouseButtonDown(0))
 				hasMouse = true;

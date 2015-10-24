@@ -23,7 +23,7 @@ public class DriverCamera : MonoBehaviour
 	
 	void LateUpdate()
 	{
-		if (Input.GetMouseButtonDown(0) && camera.pixelRect.Contains(Input.mousePosition))
+		if (Input.GetMouseButtonDown(0) && GetComponent<Camera>().pixelRect.Contains(Input.mousePosition))
 			hasMouse = true;
 		if (!Input.GetMouseButton(0))
 			hasMouse = false;
