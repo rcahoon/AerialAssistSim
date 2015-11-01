@@ -8,9 +8,7 @@ public class Network : MonoBehaviour {
   public RobotController robot;
   public InputController teleop;
   private UdpClient udpClient;
-  public int[] commands;
   private DateTime lastFeedback, lastCommand;
-  private IAsyncResult receivePending;
   const int commandsPort = 7661;
   const int feedbackPort = 7662;
   
@@ -30,10 +28,14 @@ public class Network : MonoBehaviour {
   const int BALL_PRESENCE = 14;
   
   void Awake() {
-    commands = new int[0];
-    receivePending = null;
     udpClient = new UdpClient(commandsPort);
     udpClient.Connect(IPAddress.Loopback, feedbackPort);
+    
+    // http://stackoverflow.com/a/7478498
+    uint IOC_IN = 0x80000000;
+    uint IOC_VENDOR = 0x18000000;
+    uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
+    udpClient.Client.IOControl((int)SIO_UDP_CONNRESET, new byte[] { Convert.ToByte(false) }, null);
   }
   
   void OnDestroy() {
@@ -41,23 +43,6 @@ public class Network : MonoBehaviour {
       udpClient.Close();
       udpClient = null;
     }
-  }
-
-  static void ReceiveCallback(IAsyncResult ar)
-  {
-    Network self = (Network)ar.AsyncState;
-    
-    if (self.receivePending == null) return;
-    
-    IPEndPoint e = new IPEndPoint(IPAddress.Any, commandsPort);
-    Byte[] receiveBytes = self.udpClient.EndReceive(ar, ref e);
-    if (receiveBytes.Length % sizeof(int) == 0) {
-      int[] values = new int[receiveBytes.Length / sizeof(int)];
-      Buffer.BlockCopy(receiveBytes, 0, values, 0, receiveBytes.Length);
-      
-      self.commands = values;
-    }
-    self.receivePending = null;
   }
   
   void Update() {
@@ -72,43 +57,33 @@ public class Network : MonoBehaviour {
       
       byte[] sendBytes = new byte[values.Length * sizeof(int)];
       Buffer.BlockCopy(values, 0, sendBytes, 0, sendBytes.Length);
-      /* string debug = "";
-      foreach(var item in sendBytes)
-        debug += item + " ";
-      Debug.Log(debug); */
       udpClient.Send(sendBytes, sendBytes.Length);
     }
 
-    if (receivePending == null) {
-      if (commands.Length >= 14) {
-        if (commands[RESET_SIM] > 0) {
-          Debug.Log("Reset");
-          Application.LoadLevel(Application.loadedLevel);
-        }
+    if (udpClient.Available > 0) {
+      IPEndPoint e = new IPEndPoint(IPAddress.Any, commandsPort);
+      Byte[] receiveBytes = udpClient.Receive(ref e);
+      if (receiveBytes.Length % sizeof(int) == 0) {
+        int[] commands = new int[receiveBytes.Length / sizeof(int)];
+        Buffer.BlockCopy(receiveBytes, 0, commands, 0, receiveBytes.Length);
         
-        teleop.enabled = false;
-        robot.SetMotors(commands[LEFT_MOTOR] / 512.0f, commands[RIGHT_MOTOR] / 512.0f);
-        robot.SetGripper(commands[INTAKE] >= 0);
-        if (commands[LAUNCH] >= 256) {
-          robot.Launch();
+        if (commands.Length >= 14) {
+          if (commands[RESET_SIM] > 0) {
+            Debug.Log("Reset");
+            Application.LoadLevel(Application.loadedLevel);
+          }
+          
+          teleop.enabled = false;
+          robot.SetMotors(commands[LEFT_MOTOR] / 512.0f, commands[RIGHT_MOTOR] / 512.0f);
+          robot.SetGripper(commands[INTAKE] >= 0);
+          if (commands[LAUNCH] >= 256) {
+            robot.Launch();
+          }
         }
       }
       
-      receivePending = udpClient.BeginReceive(new AsyncCallback(ReceiveCallback), this);
       lastCommand = DateTime.Now;
     } else if (DateTime.Now - lastCommand > TimeSpan.FromSeconds(1)) {
-      OnDestroy();
-      Awake();
-      /*IPEndPoint e = new IPEndPoint(IPAddress.Any, commandsPort);
-      IAsyncResult ar = receivePending;
-      receivePending = null;
-      try {
-        udpClient.EndReceive(ar, ref e);
-      } catch (Exception ex) {
-        Debug.LogException(ex);
-      }*/
-      receivePending = udpClient.BeginReceive(new AsyncCallback(ReceiveCallback), this);
-      lastCommand = DateTime.Now;
       teleop.enabled = true;
     }
   }
