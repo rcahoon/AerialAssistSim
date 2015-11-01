@@ -14,6 +14,21 @@ public class Network : MonoBehaviour {
   const int commandsPort = 7661;
   const int feedbackPort = 7662;
   
+  // Command indexes
+  const int RESET_SIM = 0;
+  
+	const int LEFT_MOTOR = 10;
+	const int RIGHT_MOTOR = 11;
+	const int INTAKE = 12;
+	const int LAUNCH = 13;
+  
+  // Feedback indexes
+  const int LEFT_ENCODER = 10;
+  const int RIGHT_ENCODER = 11;
+  const int HEADING = 12;
+  const int INTAKE_STATE = 13;
+  const int BALL_PRESENCE = 14;
+  
   void Awake() {
     commands = new int[0];
     receivePending = null;
@@ -48,13 +63,13 @@ public class Network : MonoBehaviour {
   void Update() {
     if (DateTime.Now - lastFeedback > TimeSpan.FromMilliseconds(20)) {
       lastFeedback = DateTime.Now;
-      int[] values = new int[] {
-        robot.LeftEncoder,
-        robot.RightEncoder,
-        (int)robot.Heading,
-        robot.GripperState ? 1 : -1,
-        robot.BallPresence ? 1 : 0
-      };
+      int[] values = new int[64];
+      values[LEFT_ENCODER] = robot.LeftEncoder;
+      values[RIGHT_ENCODER] = robot.RightEncoder;
+      values[HEADING] = (int)robot.Heading;
+      values[INTAKE_STATE] = robot.GripperState ? 1 : -1;
+      values[BALL_PRESENCE] = robot.BallPresence ? 1 : 0;
+      
       byte[] sendBytes = new byte[values.Length * sizeof(int)];
       Buffer.BlockCopy(values, 0, sendBytes, 0, sendBytes.Length);
       /* string debug = "";
@@ -65,11 +80,16 @@ public class Network : MonoBehaviour {
     }
 
     if (receivePending == null) {
-      if (commands.Length == 4) {
+      if (commands.Length >= 14) {
+        if (commands[RESET_SIM] > 0) {
+          Debug.Log("Reset");
+          Application.LoadLevel(Application.loadedLevel);
+        }
+        
         teleop.enabled = false;
-        robot.SetMotors(commands[0] / 512.0f, commands[1] / 512.0f);
-        robot.SetGripper(commands[2] >= 0);
-        if (commands[3] >= 256) {
+        robot.SetMotors(commands[LEFT_MOTOR] / 512.0f, commands[RIGHT_MOTOR] / 512.0f);
+        robot.SetGripper(commands[INTAKE] >= 0);
+        if (commands[LAUNCH] >= 256) {
           robot.Launch();
         }
       }
